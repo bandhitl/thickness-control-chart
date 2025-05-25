@@ -19,6 +19,31 @@ def calculate_cp_cpk(data, usl, lsl):
     cpk = min((usl - mean), (mean - lsl)) / (3 * std_dev) if std_dev > 0 else np.nan
     return cp, cpk
 
+# Western/Nelson rules
+def apply_special_rules(data, cl):
+    xbar = data['X̄']
+    std_dev = xbar.std()
+    rule_flags = []
+    
+    def trend_check(series, n=6):
+        return all(x < y for x, y in zip(series, series[1:])) or all(x > y for x, y in zip(series, series[1:]))
+
+    for i in range(len(data)):
+        flags = []
+        if abs(xbar[i] - cl) > 3 * std_dev:
+            flags.append("Rule 1: >3σ")
+
+        if i >= 6 and trend_check(xbar[i-5:i+1]):
+            flags.append("Rule 2: 6 point trend")
+
+        if i >= 6 and all((x > cl and xbar[i] > cl) or (x < cl and xbar[i] < cl) for x in xbar[i-6:i+1]):
+            flags.append("Rule 3: 7 point same side")
+
+        rule_flags.append(", ".join(flags) if flags else "")
+
+    data['Rule Violations'] = rule_flags
+    return data
+
 # Streamlit UI
 st.title("Thickness Control Chart")
 st.markdown("Enter 3 thickness values for each time point and set USL/LSL.")
@@ -66,8 +91,8 @@ if submit_button:
 
     result = calculate_spc(df.copy())
     cp, cpk = calculate_cp_cpk(result, usl, lsl)
-
     result['Out of Spec'] = (result['X̄'] > usl) | (result['X̄'] < lsl)
+    result = apply_special_rules(result, cl)
 
     st.subheader("Process Capability")
     st.write(f"Cp = {cp:.3f}")
@@ -83,6 +108,9 @@ if submit_button:
     if result['Out of Spec'].any():
         st.error("🔴 Some data points are outside the specification limits (USL/LSL). Please review.")
 
+    if result['Rule Violations'].str.len().sum() > 0:
+        st.warning("📌 Special rules triggered in the data (e.g. trend, same side, >3σ)")
+
     st.subheader("X̄ Chart")
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(result['Time'], result['X̄'], marker='o', label='X̄')
@@ -91,7 +119,7 @@ if submit_button:
     ax.axhline(lsl, color='purple', linestyle=':', label='LSL')
 
     for i, row in result.iterrows():
-        if row['Out of Spec']:
+        if row['Out of Spec'] or row['Rule Violations']:
             ax.plot(row['Time'], row['X̄'], 'ro')
 
     ax.set_title(f'X̄ Control Chart - {product_name} / {machine_name}')
