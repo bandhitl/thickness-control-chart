@@ -24,20 +24,26 @@ def apply_special_rules(data, cl):
     xbar = data['X̄']
     std_dev = xbar.std()
     rule_flags = []
-    
-    def trend_check(series, n=6):
+
+    def trend_check(series):
         return all(x < y for x, y in zip(series, series[1:])) or all(x > y for x, y in zip(series, series[1:]))
 
     for i in range(len(data)):
         flags = []
+
+        # Rule 1: Point outside 3σ
         if abs(xbar[i] - cl) > 3 * std_dev:
             flags.append("Rule 1: >3σ")
 
-        if i >= 6 and trend_check(xbar[i-5:i+1]):
+        # Rule 2: 6 points trending up or down
+        if i >= 5 and trend_check(xbar[i-5:i+1]):
             flags.append("Rule 2: 6 point trend")
 
-        if i >= 6 and all((x > cl and xbar[i] > cl) or (x < cl and xbar[i] < cl) for x in xbar[i-6:i+1]):
-            flags.append("Rule 3: 7 point same side")
+        # Rule 3: 7 points on same side of CL
+        if i >= 6:
+            segment = xbar[i-6:i+1]
+            if all(x > cl for x in segment) or all(x < cl for x in segment):
+                flags.append("Rule 3: 7 point same side")
 
         rule_flags.append(", ".join(flags) if flags else "")
 
