@@ -9,9 +9,7 @@ import io
 def calculate_spc(data):
     data['X̄'] = data[['Thickness1', 'Thickness2', 'Thickness3']].mean(axis=1)
     data['R'] = data[['Thickness1', 'Thickness2', 'Thickness3']].max(axis=1) - data[['Thickness1', 'Thickness2', 'Thickness3']].min(axis=1)
-    X_bar_bar = data['X̄'].mean()
-    R_bar = data['R'].mean()
-    return data, X_bar_bar, R_bar
+    return data
 
 # Cp & Cpk calculation
 def calculate_cp_cpk(data, usl, lsl):
@@ -32,6 +30,7 @@ num_rows = st.number_input("Number of time points:", min_value=1, max_value=50, 
 
 usl = st.number_input("Upper Specification Limit (USL):", value=2.60)
 lsl = st.number_input("Lower Specification Limit (LSL):", value=2.40)
+cl = (usl + lsl) / 2
 
 with st.form(key="thickness_form"):
     time_inputs = []
@@ -65,8 +64,10 @@ if submit_button:
     st.markdown(f"**Product:** {product_name}  |  **Machine:** {machine_name}")
     st.dataframe(df)
 
-    result, x_bar_bar, r_bar = calculate_spc(df.copy())
+    result = calculate_spc(df.copy())
     cp, cpk = calculate_cp_cpk(result, usl, lsl)
+
+    result['Out of Spec'] = (result['X̄'] > usl) | (result['X̄'] < lsl)
 
     st.subheader("Process Capability")
     st.write(f"Cp = {cp:.3f}")
@@ -79,12 +80,20 @@ if submit_button:
     else:
         st.success("✅ Cp and Cpk are acceptable.")
 
+    if result['Out of Spec'].any():
+        st.error("🔴 Some data points are outside the specification limits (USL/LSL). Please review.")
+
     st.subheader("X̄ Chart")
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(result['Time'], result['X̄'], marker='o', label='X̄')
-    ax.axhline(x_bar_bar, color='green', linestyle='-', label='CL')
+    ax.axhline(cl, color='green', linestyle='-', label='CL (Target)')
     ax.axhline(usl, color='purple', linestyle=':', label='USL')
     ax.axhline(lsl, color='purple', linestyle=':', label='LSL')
+
+    for i, row in result.iterrows():
+        if row['Out of Spec']:
+            ax.plot(row['Time'], row['X̄'], 'ro')
+
     ax.set_title(f'X̄ Control Chart - {product_name} / {machine_name}')
     ax.set_xlabel('Time')
     ax.set_ylabel('X̄ Thickness')
