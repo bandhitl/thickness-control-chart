@@ -110,12 +110,21 @@ with st.form(key="thickness_form"):
         # Use columns for layout within the loop
         col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
         with col1:
-            # Default time values for easier testing
+            # Display the "Time X" identifier for the row
+            st.markdown(f"Time {i+1}") 
+
+            # Time input field
             default_hour = 9 + i
             default_minute = "00"
             if default_hour >= 24: # Basic wrap-around for example
                 default_hour -= 24
-            time_val = st.text_input(f"Time {i+1}", key=f"time_{i}", value=f"{default_hour:02d}:{default_minute}")
+            time_val = st.text_input(
+                label=f"Input field for Time {i+1}", # Descriptive label for accessibility, hidden from view
+                key=f"time_{i}",
+                value=f"{default_hour:02d}:{default_minute}",
+                label_visibility="collapsed", # This makes the input box align with T1, T2, T3 inputs
+                placeholder="HH:MM"
+            )
         with col2:
             # Example default values for thickness, centered around (LSL+USL)/2
             t1 = st.number_input(f"T1_{i+1}", key=f"t1_{i}", value=round(np.random.normal(cl_target, 0.05), 3), format="%.3f", label_visibility="collapsed")
@@ -307,4 +316,3 @@ if submit_button:
 
 else:
     st.info("ℹ️ Enter data and click 'Generate Control Chart & Analysis' to see the results.")
-
