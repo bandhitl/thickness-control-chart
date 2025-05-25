@@ -25,6 +25,9 @@ def calculate_cp_cpk(data, usl, lsl):
 st.title("Thickness Control Chart")
 st.markdown("Enter 3 thickness values for each time point and set USL/LSL.")
 
+product_name = st.text_input("Product Name:")
+machine_name = st.text_input("Machine Name:")
+
 num_rows = st.number_input("Number of time points:", min_value=1, max_value=50, value=10, step=1)
 
 usl = st.number_input("Upper Specification Limit (USL):", value=2.60)
@@ -59,6 +62,7 @@ if submit_button:
         'Thickness3': [x[2] for x in thickness_inputs]
     })
     st.subheader("Input Data")
+    st.markdown(f"**Product:** {product_name}  |  **Machine:** {machine_name}")
     st.dataframe(df)
 
     result, x_bar_bar, r_bar = calculate_spc(df.copy())
@@ -81,7 +85,7 @@ if submit_button:
     ax.axhline(x_bar_bar, color='green', linestyle='-', label='CL')
     ax.axhline(usl, color='purple', linestyle=':', label='USL')
     ax.axhline(lsl, color='purple', linestyle=':', label='LSL')
-    ax.set_title('X̄ Control Chart')
+    ax.set_title(f'X̄ Control Chart - {product_name} / {machine_name}')
     ax.set_xlabel('Time')
     ax.set_ylabel('X̄ Thickness')
     ax.legend()
