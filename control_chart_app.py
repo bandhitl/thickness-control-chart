@@ -148,17 +148,21 @@ if submit_button:
     
     mean = result['X̄'].mean()
     std_dev = result['X̄'].std()
-    x_vals = np.linspace(mean - 4*std_dev, mean + 4*std_dev, 200)
-    normal_dist = (1 / (std_dev * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((x_vals - mean) / std_dev)**2)
-    scale = len(result['X̄']) * (max(result['X̄']) - min(result['X̄'])) / 10
-    ax2.plot(x_vals, normal_dist * scale, color='blue', linestyle='--', label='Normal Curve')
-    ax2.axvline(mean, color='orange', linestyle='-', label=f'Mean = {mean:.3f}')
-    ax2.axvline(mean + std_dev, color='gray', linestyle='--', label=f'+1σ')
-    ax2.axvline(mean - std_dev, color='gray', linestyle='--', label=f'-1σ')
-    ax2.axvline(mean + 2*std_dev, color='gray', linestyle='--', label=f'+2σ')
-    ax2.axvline(mean - 2*std_dev, color='gray', linestyle='--', label=f'-2σ')
-    ax2.axvline(mean + 3*std_dev, color='gray', linestyle='--', label=f'+3σ')
-    ax2.axvline(mean - 3*std_dev, color='gray', linestyle='--', label=f'-3σ')
+
+    if std_dev > 0:
+        x_vals = np.linspace(mean - 4*std_dev, mean + 4*std_dev, 200)
+        normal_dist = (1 / (std_dev * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((x_vals - mean) / std_dev)**2)
+        scale = result['X̄'].count() * std_dev
+        if scale == 0:
+            scale = 1
+        ax2.plot(x_vals, normal_dist * scale, color='blue', linestyle='--', label='Normal Curve')
+        ax2.axvline(mean, color='orange', linestyle='-', label=f'Mean = {mean:.3f}')
+        for s in range(1, 4):
+            ax2.axvline(mean + s * std_dev, color='gray', linestyle='--', label=f'+{s}σ')
+            ax2.axvline(mean - s * std_dev, color='gray', linestyle='--', label=f'-{s}σ')
+    else:
+        st.warning("⚠️ Standard deviation is zero. Cannot plot normal distribution.")
+
     ax2.legend()
 
     def convert_df(df):
