@@ -135,6 +135,32 @@ if submit_button:
     plt.xticks(rotation=45)
     st.pyplot(fig)
 
+    st.subheader("Distribution Chart")
+    fig2, ax2 = plt.subplots(figsize=(10, 4))
+    ax2.hist(result['X̄'], bins=10, color='skyblue', edgecolor='black', alpha=0.7)
+    ax2.axvline(usl, color='red', linestyle='--', label='USL')
+    ax2.axvline(lsl, color='red', linestyle='--', label='LSL')
+    ax2.axvline(cl, color='green', linestyle='-', label='CL')
+    ax2.set_title(f'Distribution of X̄ - {product_name} / {machine_name}')
+    ax2.set_xlabel('X̄ Thickness')
+    ax2.set_ylabel('Frequency')
+    ax2.legend()
+    
+    mean = result['X̄'].mean()
+    std_dev = result['X̄'].std()
+    x_vals = np.linspace(mean - 4*std_dev, mean + 4*std_dev, 200)
+    normal_dist = (1 / (std_dev * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((x_vals - mean) / std_dev)**2)
+    scale = len(result['X̄']) * (max(result['X̄']) - min(result['X̄'])) / 10
+    ax2.plot(x_vals, normal_dist * scale, color='blue', linestyle='--', label='Normal Curve')
+    ax2.axvline(mean, color='orange', linestyle='-', label=f'Mean = {mean:.3f}')
+    ax2.axvline(mean + std_dev, color='gray', linestyle='--', label=f'+1σ')
+    ax2.axvline(mean - std_dev, color='gray', linestyle='--', label=f'-1σ')
+    ax2.axvline(mean + 2*std_dev, color='gray', linestyle='--', label=f'+2σ')
+    ax2.axvline(mean - 2*std_dev, color='gray', linestyle='--', label=f'-2σ')
+    ax2.axvline(mean + 3*std_dev, color='gray', linestyle='--', label=f'+3σ')
+    ax2.axvline(mean - 3*std_dev, color='gray', linestyle='--', label=f'-3σ')
+    ax2.legend()
+
     def convert_df(df):
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
