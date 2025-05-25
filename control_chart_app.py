@@ -23,23 +23,37 @@ def calculate_spc(data):
 
 # UI ด้วย Streamlit
 st.title("Thickness Control Chart")
-st.markdown("กรอกข้อมูลความหนา (3 ค่า/รอบ) แล้วกดปุ่มเพื่อสร้างกราฟควบคุม")
+st.markdown("กรอกข้อมูลความหนาในแต่ละเวลา (3 ค่า/รอบ) แล้วกดปุ่มเพื่อสร้างกราฟควบคุม")
 
-num_rows = st.number_input("จำนวนรอบการวัด (จำนวนแถว):", min_value=1, max_value=50, value=10, step=1)
+num_rows = st.number_input("จำนวนช่วงเวลาที่ต้องการป้อน:", min_value=1, max_value=50, value=10, step=1)
 
 with st.form(key="thickness_form"):
-    times = [st.text_input(f"เวลา (เช่น 09:00) - แถว {i+1}", value=f"{9+i:02d}:00") for i in range(num_rows)]
-    thickness1 = [st.number_input(f"Thickness1 - แถว {i+1}", key=f"t1_{i}") for i in range(num_rows)]
-    thickness2 = [st.number_input(f"Thickness2 - แถว {i+1}", key=f"t2_{i}") for i in range(num_rows)]
-    thickness3 = [st.number_input(f"Thickness3 - แถว {i+1}", key=f"t3_{i}") for i in range(num_rows)]
+    time_inputs = []
+    thickness_inputs = []
+
+    for i in range(num_rows):
+        st.markdown(f"### ช่วงที่ {i+1}")
+        col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
+        with col1:
+            time_val = st.text_input(f"เวลา (เช่น 09:00)", key=f"time_{i}", value=f"{9+i:02d}:00")
+        with col2:
+            t1 = st.number_input("T1", key=f"t1_{i}")
+        with col3:
+            t2 = st.number_input("T2", key=f"t2_{i}")
+        with col4:
+            t3 = st.number_input("T3", key=f"t3_{i}")
+
+        time_inputs.append(time_val)
+        thickness_inputs.append((t1, t2, t3))
+
     submit_button = st.form_submit_button(label='🎯 สร้าง Control Chart')
 
 if submit_button:
     df = pd.DataFrame({
-        'Time': times,
-        'Thickness1': thickness1,
-        'Thickness2': thickness2,
-        'Thickness3': thickness3
+        'Time': time_inputs,
+        'Thickness1': [x[0] for x in thickness_inputs],
+        'Thickness2': [x[1] for x in thickness_inputs],
+        'Thickness3': [x[2] for x in thickness_inputs]
     })
     st.subheader("ข้อมูลที่ป้อนเข้ามา")
     st.dataframe(df)
