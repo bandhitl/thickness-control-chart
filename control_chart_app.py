@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import io
 
 # ฟังก์ชันคำนวณ X-bar และ R
 @st.cache_data
@@ -65,7 +66,11 @@ if submit_button:
     st.pyplot(fig)
 
     def convert_df(df):
-        return df.to_excel(index=False)
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False)
+        processed_data = output.getvalue()
+        return processed_data
 
     st.download_button(
         label="⬇️ ดาวน์โหลดผลลัพธ์",
