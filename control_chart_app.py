@@ -6,7 +6,7 @@ import io
 
 # SPC calculation function
 @st.cache_data
-def calculate_spc(data, usl, lsl):
+def calculate_spc(data):
     data['X̄'] = data[['Thickness1', 'Thickness2', 'Thickness3']].mean(axis=1)
     data['R'] = data[['Thickness1', 'Thickness2', 'Thickness3']].max(axis=1) - data[['Thickness1', 'Thickness2', 'Thickness3']].min(axis=1)
 
@@ -17,14 +17,19 @@ def calculate_spc(data, usl, lsl):
     UCL = X_bar_bar + A2 * R_bar
     LCL = X_bar_bar - A2 * R_bar
 
-    data['Out of Control (UCL/LCL)'] = (data['X̄'] > UCL) | (data['X̄'] < LCL)
-    data['Out of Spec (USL/LSL)'] = (data['X̄'] > usl) | (data['X̄'] < lsl)
-
     return data, X_bar_bar, R_bar, UCL, LCL
+
+# Cp & Cpk calculation
+def calculate_cp_cpk(data, usl, lsl):
+    std_dev = data['X̄'].std()
+    mean = data['X̄'].mean()
+    cp = (usl - lsl) / (6 * std_dev) if std_dev > 0 else np.nan
+    cpk = min((usl - mean), (mean - lsl)) / (3 * std_dev) if std_dev > 0 else np.nan
+    return cp, cpk
 
 # Streamlit UI
 st.title("Thickness Control Chart")
-st.markdown("Enter 3 thickness values for each time point and optionally set USL/LSL.")
+st.markdown("Enter 3 thickness values for each time point and set USL/LSL.")
 
 num_rows = st.number_input("Number of time points:", min_value=1, max_value=50, value=10, step=1)
 
@@ -62,24 +67,22 @@ if submit_button:
     st.subheader("Input Data")
     st.dataframe(df)
 
-    result, x_bar_bar, r_bar, ucl, lcl = calculate_spc(df.copy(), usl, lsl)
-    st.subheader("SPC Analysis Results")
-    st.dataframe(result)
+    result, x_bar_bar, r_bar, ucl, lcl = calculate_spc(df.copy())
+    cp, cpk = calculate_cp_cpk(result, usl, lsl)
 
+    st.subheader("Process Capability")
+    st.write(f"Cp = {cp:.3f}")
+    st.write(f"Cpk = {cpk:.3f}")
+
+    if cp < 1.33 or cpk < 1.33:
+        st.error("⚠️ Cp or Cpk is below 1.33. The process may not be capable.")
+    else:
+        st.success("✅ Cp and Cpk are acceptable.")
+
+    st.subheader("X̄ Chart")
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(result['Time'], result['X̄'], marker='o', label='X̄')
-    ax.axhline(ucl, color='red', linestyle='--', label='UCL')
     ax.axhline(x_bar_bar, color='green', linestyle='-', label='CL')
-    ax.axhline(lcl, color='red', linestyle='--', label='LCL')
-    ax.axhline(usl, color='purple', linestyle=':', label='USL')
-    ax.axhline(lsl, color='purple', linestyle=':', label='LSL')
-
-    for i, row in result.iterrows():
-        if row['Out of Control (UCL/LCL)']:
-            ax.plot(row['Time'], row['X̄'], 'ro')
-        elif row['Out of Spec (USL/LSL)']:
-            ax.plot(row['Time'], row['X̄'], 'mo')
-
     ax.set_title('X̄ Control Chart')
     ax.set_xlabel('Time')
     ax.set_ylabel('X̄ Thickness')
