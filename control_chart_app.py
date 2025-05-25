@@ -9,15 +9,9 @@ import io
 def calculate_spc(data):
     data['X̄'] = data[['Thickness1', 'Thickness2', 'Thickness3']].mean(axis=1)
     data['R'] = data[['Thickness1', 'Thickness2', 'Thickness3']].max(axis=1) - data[['Thickness1', 'Thickness2', 'Thickness3']].min(axis=1)
-
     X_bar_bar = data['X̄'].mean()
     R_bar = data['R'].mean()
-    A2 = 1.023  # For sample size = 3
-
-    UCL = X_bar_bar + A2 * R_bar
-    LCL = X_bar_bar - A2 * R_bar
-
-    return data, X_bar_bar, R_bar, UCL, LCL
+    return data, X_bar_bar, R_bar
 
 # Cp & Cpk calculation
 def calculate_cp_cpk(data, usl, lsl):
@@ -67,15 +61,17 @@ if submit_button:
     st.subheader("Input Data")
     st.dataframe(df)
 
-    result, x_bar_bar, r_bar, ucl, lcl = calculate_spc(df.copy())
+    result, x_bar_bar, r_bar = calculate_spc(df.copy())
     cp, cpk = calculate_cp_cpk(result, usl, lsl)
 
     st.subheader("Process Capability")
     st.write(f"Cp = {cp:.3f}")
     st.write(f"Cpk = {cpk:.3f}")
 
-    if cp < 1.33 or cpk < 1.33:
-        st.error("⚠️ Cp or Cpk is below 1.33. The process may not be capable.")
+    if cp < 1.00 or cpk < 1.00:
+        st.error("🚨 Cp or Cpk is below 1.00. The process is not capable.")
+    elif cp < 1.33 or cpk < 1.33:
+        st.warning("⚠️ Cp or Cpk is below 1.33. The process may not be reliable.")
     else:
         st.success("✅ Cp and Cpk are acceptable.")
 
@@ -83,6 +79,8 @@ if submit_button:
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(result['Time'], result['X̄'], marker='o', label='X̄')
     ax.axhline(x_bar_bar, color='green', linestyle='-', label='CL')
+    ax.axhline(usl, color='purple', linestyle=':', label='USL')
+    ax.axhline(lsl, color='purple', linestyle=':', label='LSL')
     ax.set_title('X̄ Control Chart')
     ax.set_xlabel('Time')
     ax.set_ylabel('X̄ Thickness')
